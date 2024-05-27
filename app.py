@@ -163,5 +163,27 @@ async def get_chats():
                 continue
             return jsonify({'error': str(e)})
 
+
+@app.route('/api/getme', methods=['GET', 'POST'])
+async def get_me():
+    session_file = 'session.session'
+    if not os.path.exists(session_file):
+        return jsonify({'error': 'Session file not found'})
+
+    client = create_telegram_client()
+    try:
+        await client.connect()
+        user = await client.get_me()
+        user_data = {
+            'id': user.id,
+            'first_name': user.first_name,
+            'last_name': user.last_name
+        }
+        await client.disconnect()
+        return jsonify(user_data)
+    except Exception as e:
+        await client.disconnect()
+        return jsonify({'error': str(e)})
+
 if __name__ == '__main__':
     app.run(debug=False, host='0.0.0.0', port=8007)
