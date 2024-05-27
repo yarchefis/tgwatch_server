@@ -1,0 +1,126 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Home</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet">
+    <style>
+        .container {
+            max-width: 600px;
+            margin: auto;
+            padding-top: 50px;
+        }
+        .trusted-devices {
+            background-color: #d1ecf1;
+            border-color: #bee5eb;
+            padding: 20px;
+            border-radius: 5px;
+            margin-top: 20px;
+        }
+        .trusted-devices h3 {
+            color: #0c5460;
+        }
+        .trusted-devices .btn-info {
+            background-color: #17a2b8;
+            border-color: #17a2b8;
+            color: white;
+        }
+        .danger-zone {
+            background-color: #f8d7da;
+            border-color: #f5c6cb;
+            padding: 20px;
+            border-radius: 5px;
+            margin-top: 20px;
+        }
+        .danger-zone h3 {
+            color: #721c24;
+        }
+        .danger-zone .btn-danger {
+            background-color: #d9534f;
+            border-color: #d43f3a;
+        }
+        .blurred {
+            filter: blur(5px);
+            cursor: pointer;
+            transition: filter 0.3s ease;
+        }
+        .not-blurred {
+            filter: blur(0px);
+            transition: filter 0.3s ease;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <p>User ID: <span id="user-id" class="blurred">{{ user_id }}</span></p>
+        <div class="trusted-devices">
+            <h3>Trusted Devices</h3>
+            <p>You have no trusted devices.</p>
+            <div class="d-flex justify-content-center">
+                <button disabled class="btn btn-info w-100">Add</button>
+            </div>
+        </div>
+        <div class="danger-zone">
+            <h3>Danger Zone</h3>
+            <p>This action is irreversible. Please proceed with caution.</p>
+            <button class="btn btn-danger w-100 mb-2" data-bs-toggle="modal" data-bs-target="#logoutModal">Logout</button>
+            <button disabled class="btn btn-danger w-100" data-bs-toggle="modal" data-bs-target="#shutdownModal">Shutdown Server</button>
+        </div>
+    </div>
+
+    <!-- Logout Modal -->
+    <div class="modal fade" id="logoutModal" tabindex="-1" aria-labelledby="logoutModalLabel" aria-hidden="true">
+        <div class="modal-dialog">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title" id="logoutModalLabel">Are you sure you want to logout?</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                </div>
+                <div class="modal-body">
+                    Logging out will delete the current session, and note that no information will be available on the watch after logout.
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+                    <form action="/logout" method="post">
+                        <button type="submit" class="btn btn-danger">Logout</button>
+                    </form>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Shutdown Modal -->
+    <div class="modal fade" id="shutdownModal" tabindex="-1" aria-labelledby="shutdownModalLabel" aria-hidden="true">
+        <div class="modal-dialog">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title" id="shutdownModalLabel">Are you sure you want to shutdown the server?</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                </div>
+                <div class="modal-body">
+                    Shutting down the server will disable the web interface. To restart, go to the terminal and run <code>./run.sh</code>.
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+                    <form action="/shutdown" method="post">
+                        <button type="submit" class="btn btn-danger">Shutdown</button>
+                    </form>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
+    <script>
+        document.getElementById('user-id').addEventListener('click', function() {
+            this.classList.remove('blurred');
+            this.classList.add('not-blurred');
+            setTimeout(() => {
+                this.classList.remove('not-blurred');
+                this.classList.add('blurred');
+            }, 2000);
+        });
+    </script>
+</body>
+</html>
