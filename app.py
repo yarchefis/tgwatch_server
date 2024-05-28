@@ -166,7 +166,7 @@ async def get_chats():
 
 
 
-@app.route('/api/chat/<int:chat_id>', methods=['GET'])
+@app.route('/api/chat/<int:chat_id>', methods=['GET', 'POST'])
 async def get_chat(chat_id):
     session_file = 'session.session'
     if not os.path.exists(session_file):
