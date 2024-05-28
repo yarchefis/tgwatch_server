@@ -6,6 +6,7 @@ import json
 import configparser
 import time
 from telethon.tl.types import User, Channel
+from urllib.parse import unquote
 
 app = Flask(__name__)
 app.secret_key = 'your_secret_key'
@@ -156,6 +157,104 @@ async def get_chats():
             response_data = json.dumps(chats[start_index:end_index], ensure_ascii=False, indent=4).encode('utf-8')
             await client.disconnect()
             return app.response_class(response=response_data, mimetype='application/json')
+        except Exception as e:
+            await client.disconnect()
+            if "database is locked" in str(e) and i < retries - 1:
+                time.sleep(1)
+                continue
+            return jsonify({'error': str(e)})
+
+
+
+@app.route('/api/chat/<int:chat_id>', methods=['GET'])
+async def get_chat(chat_id):
+    session_file = 'session.session'
+    if not os.path.exists(session_file):
+        return jsonify({'error': 'Session file not found'})
+
+    client = create_telegram_client()
+
+    retries = 5
+    for i in range(retries):
+        try:
+            await client.connect()
+            config = configparser.ConfigParser()
+            config.read('config.ini')
+            max_msg = config.getint('settings', 'max_msg')
+            messages = await client.get_messages(chat_id, limit=max_msg)  # Change limit as needed
+            me = await client.get_me()
+            messages_list = []
+
+            for message in messages:
+                sender_name = None
+                if message.sender:
+                    if isinstance(message.sender, User):
+                        sender_name = message.sender.first_name
+                        if not sender_name:
+                            sender_name = message.sender.username
+                    elif isinstance(message.sender, Channel):
+                        sender_name = message.sender.title
+
+                you = True if message.sender_id == me.id else False
+                message_text = message.text if message.text else ''
+
+                message_data = {
+                    'id': message.id,
+                    'text': message_text,
+                    'sender_id': message.sender_id,
+                    'sender_name': sender_name,
+                    'date': message.date.timestamp(),
+                    'you': you
+                }
+
+                if message.media is not None:
+                    if hasattr(message.media, 'photo'):
+                        message_data['text'] += "\n(ФОТО)"
+                    elif hasattr(message.media, 'document'):
+                        if message.media.document.mime_type.startswith('audio'):
+                            message_data['text'] += "\n(ГОЛОСОВОЕ СООБЩЕНИЕ)"
+                        elif message.media.document.mime_type.startswith('video'):
+                            message_data['text'] += "\n(ВИДЕО)"
+                        elif message.media.document.mime_type.startswith('image'):
+                            message_data['text'] += "\n(ИЗОБРАЖЕНИЕ или СТИКЕР)"
+                        elif message.media.document.mime_type.startswith('application') or message.media.document.mime_type.startswith('text'):
+                            message_data['text'] += "\n(ФАЙЛ)"
+                    elif hasattr(message.media, 'sticker'):
+                        message_data['text'] += "\n(СТИКЕР)"
+
+                messages_list.append(message_data)
+
+            await client.disconnect()
+            return jsonify(messages_list)
+        except Exception as e:
+            await client.disconnect()
+            if "database is locked" in str(e) and i < retries - 1:
+                time.sleep(1)
+                continue
+            return jsonify({'error': str(e)})
+ 
+
+@app.route('/api/chatformsg/<int:chat_id>/<path:message_text_encoded>', methods=['GET', 'POST'])
+async def send_message(chat_id, message_text_encoded):
+    session_file = 'session.session'
+    if not os.path.exists(session_file):
+        return jsonify({'error': 'Session file not found'})
+
+    client = create_telegram_client()
+
+    retries = 5
+    for i in range(retries):
+        try:
+            await client.connect()
+
+            # Decode message text
+            message_text = unquote(message_text_encoded.replace('_', ' '))
+
+            # Send message
+            await client.send_message(chat_id, message_text)
+
+            await client.disconnect()
+            return jsonify({'status': 'Message sent successfully'})
         except Exception as e:
             await client.disconnect()
             if "database is locked" in str(e) and i < retries - 1:
