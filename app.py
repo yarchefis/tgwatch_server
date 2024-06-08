@@ -145,6 +145,9 @@ async def get_chats():
             chats = []
             async for dialog in dialogs:
                 entity = dialog.entity
+                is_pinned = 1 if dialog.pinned else 0  # Check if the chat is pinned
+                chat_type = 'chat' if isinstance(entity, User) else 'group' if isinstance(entity, Channel) and not entity.broadcast else 'channel' if isinstance(entity, Channel) and entity.broadcast else None
+
                 if isinstance(entity, User) or isinstance(entity, Channel):
                     title = None
                     if isinstance(entity, User):
@@ -154,9 +157,10 @@ async def get_chats():
                     elif isinstance(entity, Channel):
                         title = entity.title
                     chat = {
-                        'id': entity.id,
+                        'id': chat_type,
                         'title': title,
-                        'username': entity.username if entity.username else None
+                        'username': entity.username if entity.username else None,
+                        'ispin': is_pinned  # Add the ispin field
                     }
                     chats.append(chat)
             
@@ -169,7 +173,6 @@ async def get_chats():
                 time.sleep(1)
                 continue
             return jsonify({'error': str(e)})
-
 
 
 @app.route('/api/chat/<int:chat_id>', methods=['GET', 'POST'])
