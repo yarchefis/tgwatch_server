@@ -157,10 +157,11 @@ async def get_chats():
                     elif isinstance(entity, Channel):
                         title = entity.title
                     chat = {
-                        'id': chat_type,
+                        'id': entity.id,
                         'title': title,
                         'username': entity.username if entity.username else None,
-                        'ispin': is_pinned  # Add the ispin field
+                        'ispin': is_pinned,
+                        'type': chat_type
                     }
                     chats.append(chat)
             
