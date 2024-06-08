@@ -7,6 +7,8 @@ import configparser
 import time
 from telethon.tl.types import User, Channel
 from urllib.parse import unquote
+import random
+import string
 
 app = Flask(__name__)
 app.secret_key = 'your_secret_key'
@@ -102,8 +104,12 @@ def home():
     if 'user_id' not in session:
         return redirect(url_for('index'))
 
+    config = configparser.ConfigParser()
+    config.read('config.ini')
+    isactivate = config.getint('watch', 'isactivate')
     user_id = session['user_id']
-    return render_template('home.html', user_id=user_id)
+    return render_template('home.html', user_id=user_id, isactivate=isactivate)
+
 
 @app.route('/logout', methods=['POST'])
 def logout():
@@ -272,17 +278,52 @@ async def get_me():
     client = create_telegram_client()
     try:
         await client.connect()
+        config = configparser.ConfigParser()
+        config.read('config.ini')
+        isactivate = config.getint('watch', 'isactivate')
         user = await client.get_me()
         user_data = {
             'id': user.id,
             'first_name': user.first_name,
-            'last_name': user.last_name
+            'last_name': user.last_name,
+            'isactivate': isactivate
         }
+        
+        if 'activate' in request.args:
+            activation_code = ''.join(random.choices(string.digits, k=6))
+            user_data['activation_code'] = activation_code
+            config.set('watch', 'lastactivatecode', activation_code)
+            with open('config.ini', 'w') as config_file:
+                config.write(config_file)
+        
         await client.disconnect()
         return jsonify(user_data)
     except Exception as e:
         await client.disconnect()
         return jsonify({'error': str(e)})
+
+@app.route('/api/activate', methods=['GET','POST'])
+async def activate_device():
+    activation_code = request.args.get('code')
+    if not activation_code:
+        return jsonify({'error': 'Activation code is missing'}), 400
+
+    try:
+        config = configparser.ConfigParser()
+        config.read('config.ini')
+        last_activate_code = config.get('watch', 'lastactivatecode')
+        is_activate = config.getint('watch', 'isactivate')
+
+        if activation_code == last_activate_code:
+            config.set('watch', 'isactivate', '1')
+            with open('config.ini', 'w') as config_file:
+                config.write(config_file)
+            return jsonify({'status': 'ok'})
+        else:
+            return jsonify({'error': 'Invalid activation code'}), 400
+    except Exception as e:
+        return jsonify({'error': str(e)}), 500
+
 
 if __name__ == '__main__':
     app.run(debug=False, host='0.0.0.0', port=8007)
