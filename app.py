@@ -5,6 +5,7 @@ import asyncio
 import json
 import configparser
 import time
+from telethon.errors import MessageDeleteForbiddenError, MessageIdInvalidError
 from telethon.tl.types import User, Channel
 from urllib.parse import unquote
 import random
@@ -271,6 +272,41 @@ async def send_message(chat_id, message_text_encoded):
                 time.sleep(1)
                 continue
             return jsonify({'error': str(e)})
+
+
+
+@app.route('/api/action/delete/<int:chat_id>/<int:msg_id>', methods=['GET', 'POST'])
+async def delete_message(chat_id, msg_id):
+    session_file = 'session.session'
+    if not os.path.exists(session_file):
+        return jsonify({'error': 'Session file not found'})
+
+    client = create_telegram_client()
+
+    retries = 5
+    for i in range(retries):
+        try:
+            await client.connect()
+
+            # Delete the message
+            await client.delete_messages(chat_id, msg_id)
+
+            await client.disconnect()
+            return jsonify({'status': 'Message deleted successfully'})
+        except MessageDeleteForbiddenError:
+            await client.disconnect()
+            return jsonify({'error': 'You do not have permission to delete this message'})
+        except MessageIdInvalidError:
+            await client.disconnect()
+            return jsonify({'error': 'Invalid message ID'})
+        except Exception as e:
+            await client.disconnect()
+            if "database is locked" in str(e) and i < retries - 1:
+                time.sleep(1)
+                continue
+            return jsonify({'error': str(e)})
+
+
 
 
 @app.route('/api/getme', methods=['GET', 'POST'])
