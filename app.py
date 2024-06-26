@@ -179,17 +179,6 @@ async def get_chats():
             return jsonify({'error': str(e)})
 
 
-from datetime import datetime
-from collections import defaultdict
-
-from datetime import datetime
-from collections import defaultdict
-
-from datetime import datetime
-from collections import defaultdict
-
-from datetime import datetime
-from collections import defaultdict
 
 @app.route('/api/chat/<int:chat_id>', methods=['GET', 'POST'])
 async def get_chat(chat_id):
@@ -250,10 +239,11 @@ async def get_chat(chat_id):
                 message_date = message.date.strftime('%Y-%m-%d')
                 messages_by_date[message_date].append(message_data)
 
-            sorted_dates = sorted(messages_by_date.keys())
+            sorted_dates = sorted(messages_by_date.keys(), reverse=True)
             messages_list = []
 
             for date in sorted_dates:
+                messages_list.extend(messages_by_date[date])
                 date_marker = {
                     'id': None,
                     'text': date,
@@ -263,7 +253,6 @@ async def get_chat(chat_id):
                     'you': False
                 }
                 messages_list.append(date_marker)
-                messages_list.extend(messages_by_date[date])
 
             await client.disconnect()
             return jsonify(messages_list)
