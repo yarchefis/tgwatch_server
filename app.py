@@ -185,6 +185,9 @@ from collections import defaultdict
 from datetime import datetime
 from collections import defaultdict
 
+from datetime import datetime
+from collections import defaultdict
+
 @app.route('/api/chat/<int:chat_id>', methods=['GET', 'POST'])
 async def get_chat(chat_id):
     session_file = 'session.session'
@@ -217,49 +220,6 @@ async def get_chat(chat_id):
                 you = True if message.sender_id == me.id else False
                 message_text = message.text if message.text else ''
 
-                media_counts = {
-                    'photo': 0,
-                    'voice': 0,
-                    'video': 0,
-                    'image': 0,
-                    'file': 0,
-                    'sticker': 0
-                }
-
-                if message.media is not None:
-                    if hasattr(message.media, 'photo'):
-                        media_counts['photo'] += 1
-                    elif hasattr(message.media, 'document'):
-                        if message.media.document.mime_type.startswith('audio'):
-                            media_counts['voice'] += 1
-                        elif message.media.document.mime_type.startswith('video'):
-                            media_counts['video'] += 1
-                        elif message.media.document.mime_type.startswith('image'):
-                            media_counts['image'] += 1
-                        elif message.media.document.mime_type.startswith('application') or message.media.document.mime_type.startswith('text'):
-                            media_counts['file'] += 1
-                    elif hasattr(message.media, 'sticker'):
-                        media_counts['sticker'] += 1
-
-                media_texts = []
-                for media_type, count in media_counts.items():
-                    if count > 0:
-                        if media_type == 'photo':
-                            media_texts.append(f"(ФОТОx{count})")
-                        elif media_type == 'voice':
-                            media_texts.append(f"(ГОЛОСОВОЕ СООБЩЕНИЕx{count})")
-                        elif media_type == 'video':
-                            media_texts.append(f"(ВИДЕОx{count})")
-                        elif media_type == 'image':
-                            media_texts.append(f"(ИЗОБРАЖЕНИЕ или СТИКЕРx{count})")
-                        elif media_type == 'file':
-                            media_texts.append(f"(ФАЙЛx{count})")
-                        elif media_type == 'sticker':
-                            media_texts.append(f"(СТИКЕРx{count})")
-
-                if media_texts:
-                    message_text += " " + " ".join(media_texts)
-
                 message_data = {
                     'id': message.id,
                     'text': message_text,
@@ -269,15 +229,36 @@ async def get_chat(chat_id):
                     'you': you
                 }
 
+                if message.media is not None:
+                    if hasattr(message.media, 'photo'):
+                        message_data['text'] += " (ФОТО)"
+                    elif hasattr(message.media, 'document'):
+                        if message.media.document.mime_type.startswith('audio'):
+                            message_data['text'] += " (ГОЛОСОВОЕ СООБЩЕНИЕ)"
+                        elif message.media.document.mime_type.startswith('video'):
+                            message_data['text'] += " (ВИДЕО)"
+                        elif message.media.document.mime_type.startswith('image'):
+                            message_data['text'] += " (ИЗОБРАЖЕНИЕ или СТИКЕР)"
+                        elif message.media.document.mime_type.startswith('application') or message.media.document.mime_type.startswith('text'):
+                            message_data['text'] += " (ФАЙЛ)"
+                    elif hasattr(message.media, 'sticker'):
+                        message_data['text'] += " (СТИКЕР)"
+
                 message_date = message.date.strftime('%Y-%m-%d')
                 messages_by_date[message_date].append(message_data)
 
-            sorted_dates = sorted(messages_by_date.keys(), reverse=True)
+            sorted_dates = sorted(messages_by_date.keys())
             messages_list = []
 
             for date in sorted_dates:
+                date_marker = {
+                    'date': date,
+                    'id': None,
+                    'sender_id': None,
+                    'sender_name': 'telegram'
+                }
+                messages_list.append(date_marker)
                 messages_list.extend(messages_by_date[date])
-                messages_list.append({'date': date})
 
             await client.disconnect()
             return jsonify(messages_list)
@@ -287,6 +268,7 @@ async def get_chat(chat_id):
                 time.sleep(1)
                 continue
             return jsonify({'error': str(e)})
+
 
 
 
