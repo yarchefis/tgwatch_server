@@ -180,6 +180,9 @@ async def get_chats():
 
 
 
+from datetime import datetime
+from collections import defaultdict
+
 @app.route('/api/chat/<int:chat_id>', methods=['GET', 'POST'])
 async def get_chat(chat_id):
     session_file = 'session.session'
@@ -243,7 +246,6 @@ async def get_chat(chat_id):
             messages_list = []
 
             for date in sorted_dates:
-                messages_list.extend(messages_by_date[date])
                 date_marker = {
                     'id': None,
                     'text': date,
@@ -253,6 +255,7 @@ async def get_chat(chat_id):
                     'you': False
                 }
                 messages_list.append(date_marker)
+                messages_list.extend(messages_by_date[date])
 
             await client.disconnect()
             return jsonify(messages_list)
@@ -262,6 +265,7 @@ async def get_chat(chat_id):
                 time.sleep(1)
                 continue
             return jsonify({'error': str(e)})
+
 
 
 
