@@ -209,6 +209,48 @@ async def get_chat(chat_id):
                 you = True if message.sender_id == me.id else False
                 message_text = message.text if message.text else ''
 
+                media_counts = {
+                    'photo': 0,
+                    'voice': 0,
+                    'video': 0,
+                    'image': 0,
+                    'file': 0,
+                    'sticker': 0
+                }
+
+                if message.media is not None:
+                    if hasattr(message.media, 'photo'):
+                        media_counts['photo'] += 1
+                    elif hasattr(message.media, 'document'):
+                        if message.media.document.mime_type.startswith('audio'):
+                            media_counts['voice'] += 1
+                        elif message.media.document.mime_type.startswith('video'):
+                            media_counts['video'] += 1
+                        elif message.media.document.mime_type.startswith('image'):
+                            media_counts['image'] += 1
+                        elif message.media.document.mime_type.startswith('application') or message.media.document.mime_type.startswith('text'):
+                            media_counts['file'] += 1
+                    elif hasattr(message.media, 'sticker'):
+                        media_counts['sticker'] += 1
+
+                media_texts = []
+                for media_type, count in media_counts.items():
+                    if count > 0:
+                        if media_type == 'photo':
+                            media_texts.append(f"(ФОТОx{count})")
+                        elif media_type == 'voice':
+                            media_texts.append(f"(ГОЛОСОВОЕ СООБЩЕНИЕx{count})")
+                        elif media_type == 'video':
+                            media_texts.append(f"(ВИДЕОx{count})")
+                        elif media_type == 'image':
+                            media_texts.append(f"(ИЗОБРАЖЕНИЕ или СТИКЕРx{count})")
+                        elif media_type == 'file':
+                            media_texts.append(f"(ФАЙЛx{count})")
+                        elif media_type == 'sticker':
+                            media_texts.append(f"(СТИКЕРx{count})")
+
+                message_text += " ".join(media_texts)
+
                 message_data = {
                     'id': message.id,
                     'text': message_text,
@@ -217,21 +259,6 @@ async def get_chat(chat_id):
                     'date': message.date.timestamp(),
                     'you': you
                 }
-
-                if message.media is not None:
-                    if hasattr(message.media, 'photo'):
-                        message_data['text'] += "\n(ФОТО)"
-                    elif hasattr(message.media, 'document'):
-                        if message.media.document.mime_type.startswith('audio'):
-                            message_data['text'] += "\n(ГОЛОСОВОЕ СООБЩЕНИЕ)"
-                        elif message.media.document.mime_type.startswith('video'):
-                            message_data['text'] += "\n(ВИДЕО)"
-                        elif message.media.document.mime_type.startswith('image'):
-                            message_data['text'] += "\n(ИЗОБРАЖЕНИЕ или СТИКЕР)"
-                        elif message.media.document.mime_type.startswith('application') or message.media.document.mime_type.startswith('text'):
-                            message_data['text'] += "\n(ФАЙЛ)"
-                    elif hasattr(message.media, 'sticker'):
-                        message_data['text'] += "\n(СТИКЕР)"
 
                 messages_list.append(message_data)
 
@@ -243,6 +270,7 @@ async def get_chat(chat_id):
                 time.sleep(1)
                 continue
             return jsonify({'error': str(e)})
+
  
 
 @app.route('/api/chatformsg/<int:chat_id>/<path:message_text_encoded>', methods=['GET', 'POST'])
@@ -272,40 +300,6 @@ async def send_message(chat_id, message_text_encoded):
                 time.sleep(1)
                 continue
             return jsonify({'error': str(e)})
-
-
-
-@app.route('/api/action/delete/<int:chat_id>/<int:msg_id>', methods=['GET', 'POST'])
-async def delete_message(chat_id, msg_id):
-    session_file = 'session.session'
-    if not os.path.exists(session_file):
-        return jsonify({'error': 'Session file not found'})
-
-    client = create_telegram_client()
-
-    retries = 5
-    for i in range(retries):
-        try:
-            await client.connect()
-
-            # Delete the message
-            await client.delete_messages(chat_id, msg_id)
-
-            await client.disconnect()
-            return jsonify({'status': 'Message deleted successfully'})
-        except MessageDeleteForbiddenError:
-            await client.disconnect()
-            return jsonify({'error': 'You do not have permission to delete this message'})
-        except MessageIdInvalidError:
-            await client.disconnect()
-            return jsonify({'error': 'Invalid message ID'})
-        except Exception as e:
-            await client.disconnect()
-            if "database is locked" in str(e) and i < retries - 1:
-                time.sleep(1)
-                continue
-            return jsonify({'error': str(e)})
-
 
 
 
