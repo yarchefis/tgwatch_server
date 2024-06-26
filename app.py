@@ -10,6 +10,8 @@ from telethon.tl.types import User, Channel
 from urllib.parse import unquote
 import random
 import string
+from datetime import datetime
+from collections import defaultdict
 
 app = Flask(__name__)
 app.secret_key = 'your_secret_key'
@@ -177,6 +179,12 @@ async def get_chats():
             return jsonify({'error': str(e)})
 
 
+from datetime import datetime
+from collections import defaultdict
+
+from datetime import datetime
+from collections import defaultdict
+
 @app.route('/api/chat/<int:chat_id>', methods=['GET', 'POST'])
 async def get_chat(chat_id):
     session_file = 'session.session'
@@ -194,7 +202,7 @@ async def get_chat(chat_id):
             max_msg = config.getint('settings', 'max_msg')
             messages = await client.get_messages(chat_id, limit=max_msg)  # Change limit as needed
             me = await client.get_me()
-            messages_list = []
+            messages_by_date = defaultdict(list)
 
             for message in messages:
                 sender_name = None
@@ -249,7 +257,8 @@ async def get_chat(chat_id):
                         elif media_type == 'sticker':
                             media_texts.append(f"(СТИКЕРx{count})")
 
-                message_text += " ".join(media_texts)
+                if media_texts:
+                    message_text += " " + " ".join(media_texts)
 
                 message_data = {
                     'id': message.id,
@@ -260,7 +269,15 @@ async def get_chat(chat_id):
                     'you': you
                 }
 
-                messages_list.append(message_data)
+                message_date = message.date.strftime('%Y-%m-%d')
+                messages_by_date[message_date].append(message_data)
+
+            sorted_dates = sorted(messages_by_date.keys(), reverse=True)
+            messages_list = []
+
+            for date in sorted_dates:
+                messages_list.extend(messages_by_date[date])
+                messages_list.append({'date': date})
 
             await client.disconnect()
             return jsonify(messages_list)
@@ -270,6 +287,8 @@ async def get_chat(chat_id):
                 time.sleep(1)
                 continue
             return jsonify({'error': str(e)})
+
+
 
  
 
