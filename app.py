@@ -205,7 +205,7 @@ async def get_chat(chat_id):
             max_msg = config.getint('settings', 'max_msg')
             messages = await client.get_messages(chat_id, limit=max_msg)  # Change limit as needed
             me = await client.get_me()
-            messages_by_date = defaultdict(list)
+            messages_list = []
 
             for message in messages:
                 sender_name = None
@@ -231,34 +231,20 @@ async def get_chat(chat_id):
 
                 if message.media is not None:
                     if hasattr(message.media, 'photo'):
-                        message_data['text'] += " (ФОТО)"
+                        message_data['text'] += "\n(ФОТО)"
                     elif hasattr(message.media, 'document'):
                         if message.media.document.mime_type.startswith('audio'):
-                            message_data['text'] += " (ГОЛОСОВОЕ СООБЩЕНИЕ)"
+                            message_data['text'] += "\n(ГОЛОСОВОЕ СООБЩЕНИЕ)"
                         elif message.media.document.mime_type.startswith('video'):
-                            message_data['text'] += " (ВИДЕО)"
+                            message_data['text'] += "\n(ВИДЕО)"
                         elif message.media.document.mime_type.startswith('image'):
-                            message_data['text'] += " (ИЗОБРАЖЕНИЕ или СТИКЕР)"
+                            message_data['text'] += "\n(ИЗОБРАЖЕНИЕ или СТИКЕР)"
                         elif message.media.document.mime_type.startswith('application') or message.media.document.mime_type.startswith('text'):
-                            message_data['text'] += " (ФАЙЛ)"
+                            message_data['text'] += "\n(ФАЙЛ)"
                     elif hasattr(message.media, 'sticker'):
-                        message_data['text'] += " (СТИКЕР)"
+                        message_data['text'] += "\n(СТИКЕР)"
 
-                message_date = message.date.strftime('%Y-%m-%d')
-                messages_by_date[message_date].append(message_data)
-
-            sorted_dates = sorted(messages_by_date.keys())
-            messages_list = []
-
-            for date in sorted_dates:
-                date_marker = {
-                    'date': date,
-                    'id': None,
-                    'sender_id': None,
-                    'sender_name': 'telegram'
-                }
-                messages_list.append(date_marker)
-                messages_list.extend(messages_by_date[date])
+                messages_list.append(message_data)
 
             await client.disconnect()
             return jsonify(messages_list)
