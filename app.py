@@ -188,6 +188,9 @@ from collections import defaultdict
 from datetime import datetime
 from collections import defaultdict
 
+from datetime import datetime
+from collections import defaultdict
+
 @app.route('/api/chat/<int:chat_id>', methods=['GET', 'POST'])
 async def get_chat(chat_id):
     session_file = 'session.session'
@@ -205,7 +208,7 @@ async def get_chat(chat_id):
             max_msg = config.getint('settings', 'max_msg')
             messages = await client.get_messages(chat_id, limit=max_msg)  # Change limit as needed
             me = await client.get_me()
-            messages_list = []
+            messages_by_date = defaultdict(list)
 
             for message in messages:
                 sender_name = None
@@ -220,6 +223,21 @@ async def get_chat(chat_id):
                 you = True if message.sender_id == me.id else False
                 message_text = message.text if message.text else ''
 
+                if message.media is not None:
+                    if hasattr(message.media, 'photo'):
+                        message_text += " (ФОТО)"
+                    elif hasattr(message.media, 'document'):
+                        if message.media.document.mime_type.startswith('audio'):
+                            message_text += " (ГОЛОСОВОЕ СООБЩЕНИЕ)"
+                        elif message.media.document.mime_type.startswith('video'):
+                            message_text += " (ВИДЕО)"
+                        elif message.media.document.mime_type.startswith('image'):
+                            message_text += " (ИЗОБРАЖЕНИЕ или СТИКЕР)"
+                        elif message.media.document.mime_type.startswith('application') or message.media.document.mime_type.startswith('text'):
+                            message_text += " (ФАЙЛ)"
+                    elif hasattr(message.media, 'sticker'):
+                        message_text += " (СТИКЕР)"
+
                 message_data = {
                     'id': message.id,
                     'text': message_text,
@@ -229,22 +247,23 @@ async def get_chat(chat_id):
                     'you': you
                 }
 
-                if message.media is not None:
-                    if hasattr(message.media, 'photo'):
-                        message_data['text'] += "\n(ФОТО)"
-                    elif hasattr(message.media, 'document'):
-                        if message.media.document.mime_type.startswith('audio'):
-                            message_data['text'] += "\n(ГОЛОСОВОЕ СООБЩЕНИЕ)"
-                        elif message.media.document.mime_type.startswith('video'):
-                            message_data['text'] += "\n(ВИДЕО)"
-                        elif message.media.document.mime_type.startswith('image'):
-                            message_data['text'] += "\n(ИЗОБРАЖЕНИЕ или СТИКЕР)"
-                        elif message.media.document.mime_type.startswith('application') or message.media.document.mime_type.startswith('text'):
-                            message_data['text'] += "\n(ФАЙЛ)"
-                    elif hasattr(message.media, 'sticker'):
-                        message_data['text'] += "\n(СТИКЕР)"
+                message_date = message.date.strftime('%Y-%m-%d')
+                messages_by_date[message_date].append(message_data)
 
-                messages_list.append(message_data)
+            sorted_dates = sorted(messages_by_date.keys())
+            messages_list = []
+
+            for date in sorted_dates:
+                date_marker = {
+                    'id': None,
+                    'text': date,
+                    'sender_id': None,
+                    'sender_name': 'telegram',
+                    'date': datetime.strptime(date, '%Y-%m-%d').timestamp(),
+                    'you': False
+                }
+                messages_list.append(date_marker)
+                messages_list.extend(messages_by_date[date])
 
             await client.disconnect()
             return jsonify(messages_list)
@@ -254,6 +273,7 @@ async def get_chat(chat_id):
                 time.sleep(1)
                 continue
             return jsonify({'error': str(e)})
+
 
 
 
