@@ -12,7 +12,6 @@ import random
 import string
 from datetime import datetime
 from collections import defaultdict
-
 app = Flask(__name__)
 app.secret_key = 'your_secret_key'
 config = configparser.ConfigParser()
@@ -178,10 +177,6 @@ async def get_chats():
                 continue
             return jsonify({'error': str(e)})
 
-
-
-from datetime import datetime
-from collections import defaultdict
 
 @app.route('/api/chat/<int:chat_id>', methods=['GET', 'POST'])
 async def get_chat(chat_id):
@@ -355,6 +350,27 @@ async def activate_device():
             return jsonify({'status': 'ok'})
         else:
             return jsonify({'error': 'Invalid activation code'}), 400
+    except Exception as e:
+        return jsonify({'error': str(e)}), 500
+
+@app.route('/api/action/config/<parameter>/<parameter2>/<new_data>', methods=['POST', 'GET'])
+def update_config(parameter, parameter2, new_data):
+    try:
+        config = configparser.ConfigParser()
+        config.read('config.ini')
+
+        if parameter not in config:
+            return jsonify({'error': 'Invalid parameter'}), 400
+        
+        if parameter2 not in config[parameter]:
+            return jsonify({'error': 'Invalid parameter2'}), 400
+
+        config.set(parameter, parameter2, new_data)
+
+        with open('config.ini', 'w') as config_file:
+            config.write(config_file)
+
+        return jsonify({'status': 'Configuration updated successfully'}), 200
     except Exception as e:
         return jsonify({'error': str(e)}), 500
 
